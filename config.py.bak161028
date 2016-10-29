@@ -42,31 +42,37 @@ gray   = "#928374"
 
 keys = [
     # Switch between screens
-    Key([mod], "1", lazy.to_screen(0)),
-    Key([mod], "2", lazy.to_screen(1)),
+    Key([mod], "l", lazy.to_screen(1)),
+    Key([mod], "h", lazy.to_screen(0)),
 
     # Switch between windows in current stack pane
-    Key([mod], "h", lazy.layout.left()),
+    #Key([mod], "h", lazy.layout.next()),
     Key([mod], "j", lazy.layout.down()),
     Key([mod], "k", lazy.layout.up()),
-    Key([mod], "l", lazy.layout.right()),
-
-    Key([mod, "shift"], "h", lazy.layout.swap_left()),
-    Key([mod, "shift"], "l", lazy.layout.swap_right()),
-    Key([mod, "shift"], "j", lazy.layout.shuffle_down()),
-    Key([mod, "shift"], "k", lazy.layout.shuffle_up()),
 
     # Move windows up or down in current stack
     Key([mod, "control"], "k", lazy.layout.shuffle_down()),
     Key([mod, "control"], "j", lazy.layout.shuffle_up()),
 
+    # Switch window focus to other pane(s) of stack
+    Key([mod], "space", lazy.layout.next()),
+
+    # Swap panes of split stack
+    Key([mod, "shift"], "space", lazy.layout.rotate()),
+
+    # Toggle between split and unsplit sides of stack.
+    # Split = all windows displayed
+    # Unsplit = 1 window displayed, like Max layout, but still with
+    # multiple stack panes
+    Key(
+        [mod, "shift"], "Return",
+        lazy.layout.toggle_split()
+    ),
     Key([mod], "Return", lazy.spawn("urxvt -fg lightgray -bg black -tr -tint lightgray -sh 40")),
     Key([mod], "b", lazy.spawn("chromium")),
 
     # Toggle between different layouts as defined below
     Key([mod], "Tab", lazy.next_layout()),
-    Key([mod], "space", lazy.next_layout()),
-
     Key([mod], "w", lazy.window.kill()),
 
     Key([mod, "control"], "r", lazy.restart()),
@@ -81,44 +87,22 @@ keys = [
     # lock secreen
     Key([mod, "control"], "l", lazy.spawn("i3lock -i /home/arch/.i3/i3lock.png -c 000000")),
 
-    Key([mod], "z", lazy.window.toggle_floating()),
-    #Key([mod], "n", lazy.window.toggle_minimize()),
-    #Key([mod], "m", lazy.window.toggle_maximize()),
-
-    Key([mod], "i", lazy.layout.grow()),
-    Key([mod], "o", lazy.layout.shrink()),
-    Key([mod], "n", lazy.layout.normalize()),
-    Key([mod], "m", lazy.layout.maximize()),
+    Key([mod], "f", lazy.window.toggle_floating()),
+    Key([mod], "n", lazy.window.toggle_minimize()),
+    Key([mod], "m", lazy.window.toggle_maximize()),
 ]
-
-myMonadTall = layout.MonadTall()
 
 myStack = layout.Stack(
     border_focus=blue,
     border_normal=gray,
-    border_width=2,
-    margin=2,
+    border_width=4,
+    margin=4,
     num_stacks=2,
 )
 
 myLayouts = {
     "a": [
-        myMonadTall,
-        layout.Max(),
-    ],
-    "s": [
-        myMonadTall,
-        layout.Max(),
-    ],
-    "d": [
-        myMonadTall,
-        layout.Max(),
-    ],
-    "f": [
-        myMonadTall,
-        layout.Max(),
-    ],
-    "g": [
+        myStack,
         layout.Max(),
     ],
 }
@@ -128,10 +112,13 @@ myMatches = {
     "s": None,
     "d": None,
     "f": None,
-    "g": [Match(wm_class=["chromium"])]
+    "1": [Match(wm_class=["chromium"])],
+    "2": [Match(wm_class=["virtualbox"])],
+    "3": None,
+    "4": None,
 }
 
-groups = [Group(i, layouts=myLayouts[i], matches=myMatches[i]) for i in "asdfg"]
+groups = [Group(i, layouts=myLayouts[i], matches=myMatches[i]) for i in "asdf1234"]
 
 for i in groups:
     # mod1 + letter of group = switch to group
@@ -144,6 +131,12 @@ for i in groups:
         Key([mod, "shift"], i.name, lazy.window.togroup(i.name))
     )
 
+layouts = [
+    layout.Max(),
+    layout.Stack(num_stacks=2, autosplit=True),
+    #layout.Columns(num_columns=2),
+]
+
 widget_defaults = dict(
     font='Arial',
     fontsize=16,
@@ -152,71 +145,39 @@ widget_defaults = dict(
 
 screens = [
     Screen(
-        bottom=bar.Bar([
-            widget.TextBox(
-                text=u"Arch >",
-                background=blue,
-                foreground=black,
-                markup=True
-            ),
-            widget.CurrentLayout(
-                fontsize=16,
-                background=gray,
-                foreground=black
-            ),
-            widget.TextBox(
-                text=u">",
-                background=gray,
-                foreground=black
-            ),
-            widget.Prompt(
-                fontsize=16,
-                background=yellow,
-                foreground=gray,
-                padding=0
-            ),
-            widget.TextBox(
-                text=u"[",
-                fontsize=16,
-                background=black,
-                foreground=gray,
-                padding=0
-            ),
-            widget.WindowName(
-                background=black,
-                foreground=white
-            ),
-            widget.TextBox(
-                text=u"]",
-                fontsize=16,
-                background=black,
-                foreground=white,
-                padding=0
-            ),
-            widget.TextBox(text=u"< Cpu", fontsize=16, background=black, foreground=gray,),
-            widget.CPUGraph(graph_color='0066FF', fill_color='001188', border_width=1, line_width=1),
+        bottom=bar.Bar(
+            [
+                widget.GroupBox(),
+                widget.Prompt(),
+                widget.Sep(),
+                widget.WindowName(),
+               
+                widget.TextBox(text="Cpu"),
+                widget.CPUGraph(graph_color='0066FF', fill_color='001188', border_width=1, line_width=1),
 
-            widget.TextBox(text="< Mem", fontsize=16),
-            widget.MemoryGraph(graph_color='22FF44', fill_color='11AA11', border_width=1, line_width=1),
+                widget.TextBox(text="Mem"),
+                widget.MemoryGraph(graph_color='22FF44', fill_color='11AA11', border_width=1, line_width=1),
 
-            widget.TextBox(text="< Net", fontsize=16),
-            widget.NetGraph(border_width=1, line_width=1),
+                widget.TextBox(text="Net"),
+                widget.NetGraph(border_width=1, line_width=1),
 
-            widget.TextBox(text="< Bat:", fontsize=16),
-            widget.Battery(background=aqua, foreground=black),
+                widget.Sep(),
+                widget.TextBox(text="Bat:"),
+                widget.Battery(),
 
-            widget.TextBox('Vol:', fontsize=16, background=aqua, foreground=black),
-            widget.Volume(background=aqua, foreground=black),
+                widget.Sep(),
+                widget.TextBox('Vol:'),
+                widget.Volume(),
 
-            widget.Clock(
-                format=u'< %Y-%m-%d %H:%M',
-                background=purple,
-                foreground=black
-            ),
-            widget.Systray(
-                background=black
-            ),
-        ], 20),
+                widget.Sep(),
+                widget.Systray(),
+                widget.Sep(),
+                widget.Clock(format='%Y-%m-%d'),
+                widget.Sep(),
+                widget.Clock(format='%H:%M'),
+            ],
+            30,
+        ),
     ),
 ]
 
@@ -235,11 +196,7 @@ main = None
 follow_mouse_focus = True
 bring_front_click = False
 cursor_warp = False
-floating_layout = layout.Floating(
-    border_focus = blue,
-    border_normal = gray,
-    border_width = 2
-)
+floating_layout = layout.Floating()
 auto_fullscreen = True
 focus_on_window_activation = "smart"
 
@@ -252,6 +209,3 @@ focus_on_window_activation = "smart"
 # We choose LG3D to maximize irony: it is a 3D non-reparenting WM written in
 # java that happens to be on java's whitelist.
 wmname = "LG3D"
-
-def main(qtile):
-    qtile.cmd_warning()
